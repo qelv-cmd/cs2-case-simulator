@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2 Case Simulator Ultimate</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        csdark: '#0a0e17',
+                        csdarker: '#05070a',
+                        csborder: '#1e293b',
+                        csaccent: '#131c2e',
+                        csgold: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #05070a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        /* Rarity Neon Glows */
+        .glow-blue { box-shadow: 0 0 25px rgba(78, 115, 222, 0.35); border-color: #4e73de; }
+        .glow-purple { box-shadow: 0 0 25px rgba(136, 71, 255, 0.35); border-color: #8847ff; }
+        .glow-pink { box-shadow: 0 0 25px rgba(211, 44, 230, 0.35); border-color: #d32ce6; }
+        .glow-red { box-shadow: 0 0 30px rgba(235, 75, 75, 0.5); border-color: #eb4b4b; }
+        .glow-gold { box-shadow: 0 0 40px rgba(255, 215, 0, 0.6); border-color: #ffd700; }
+
+        .bg-blue-rarity { background: linear-gradient(135deg, rgba(78,115,222,0.25) 0%, rgba(10,14,23,0.9) 100%); }
+        .bg-purple-rarity { background: linear-gradient(135deg, rgba(136,71,255,0.25) 0%, rgba(10,14,23,0.9) 100%); }
+        .bg-pink-rarity { background: linear-gradient(135deg, rgba(211,44,230,0.25) 0%, rgba(10,14,23,0.9) 100%); }
+        .bg-red-rarity { background: linear-gradient(135deg, rgba(235,75,75,0.3) 0%, rgba(10,14,23,0.9) 100%); }
+        .bg-gold-rarity { background: linear-gradient(135deg, rgba(255,215,0,0.35) 0%, rgba(10,14,23,0.9) 100%); }
+
+        .text-blue-item { color: #4e73de; }
+        .text-purple-item { color: #8847ff; }
+        .text-pink-item { color: #d32ce6; }
+        .text-red-item { color: #eb4b4b; }
+        .text-gold-item { color: #ffd700; }
+
+        /* Roulette Container */
+        .roulette-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 200px;
+            background: radial-gradient(circle at center, #111827 0%, #05070a 100%);
+            border-top: 2px solid #334155;
+            border-bottom: 2px solid #334155;
+        }
+        .roulette-pointer {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            background: #f59e0b;
+            z-index: 20;
+            box-shadow: 0 0 15px #f59e0b;
+        }
+        .roulette-pointer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -8px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 14px solid #f59e0b;
+        }
+        .roulette-pointer::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -8px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 14px solid #f59e0b;
+        }
+        .roulette-track {
+            display: flex;
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            will-change: transform;
+        }
+        .roulette-item {
+            min-width: 160px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 10px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            box-sizing: border-box;
+            background: rgba(19, 28, 46, 0.7);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        .animate-pulse-glow { animation: pulse-glow 3s infinite; }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+        }
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 999;
+            animation: confettiFall linear forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black">
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-csdarker border-b border-csborder sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between shadow-2xl backdrop-blur-md bg-opacity-95">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-amber-600 to-yellow-400 p-2.5 rounded-xl text-black font-black text-xl shadow-lg flex items-center justify-center w-11 h-11">
+                <i class="fa-solid fa-crosshairs"></i>
+            </div>
+            <div>
+                <h1 class="font-black text-lg tracking-wider text-white uppercase italic flex items-center">
+                    CS2 Case Simulator <span class="ml-2 px-2 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full font-bold">ULTIMATE</span>
+                </h1>
+                <div class="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
+                    <span>Ранг: <strong id="user-rank" class="text-amber-400">Новичок (1)</strong></span>
+                    <span>•</span>
+                    <span>Опыт: <span id="user-xp">0</span>/<span id="next-xp">100</span> XP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS & BALANCE & SETTINGS -->
+        <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+            <!-- Sound Toggle -->
+            <button onclick="toggleSound()" id="sound-btn" title="Звук" class="bg-csaccent border border-csborder hover:border-slate-500 text-slate-300 w-10 h-10 rounded-xl flex items-center justify-center transition shadow">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+            </button>
+
+            <!-- Balance -->
+            <div class="bg-csaccent border border-csborder px-4 py-2 rounded-xl flex items-center space-x-3 shadow-inner">
+                <div class="text-amber-400 font-black text-lg"><i class="fa-solid fa-coins mr-1.5"></i><span id="user-balance">2500.00</span> $</div>
+                <button onclick="addMoney(1000)" title="Пополнить баланс" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition shadow flex items-center">
+                    <i class="fa-solid fa-plus mr-1"></i> Баланс
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <div class="bg-csdark border-b border-csborder px-4 lg:px-8 py-2.5 flex justify-center sticky top-[65px] z-40 backdrop-blur-md bg-opacity-95">
+        <div class="flex space-x-2 bg-csaccent p-1.5 rounded-2xl border border-csborder max-w-4xl w-full justify-around">
+            <button onclick="switchTab('cases')" id="tab-cases-btn" class="flex-1 py-2 rounded-xl text-sm font-bold bg-amber-500 text-black transition shadow flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-box-open"></i> <span>Кейсы</span>
+            </button>
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="flex-1 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-briefcase"></i> <span>Инвентарь (<span id="inv-count">0</span>)</span>
+            </button>
+            <button onclick="switchTab('contracts')" id="tab-contracts-btn" class="flex-1 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-file-contract"></i> <span>Контракты</span>
+            </button>
+            <button onclick="switchTab('stats')" id="tab-stats-btn" class="flex-1 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-chart-pie"></i> <span>Статистика</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow container mx-auto px-4 py-6 max-w-7xl">
+
+        <!-- 1. CASES TAB -->
+        <div id="tab-cases" class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-csdark border border-csborder p-6 rounded-3xl shadow-xl">
+                <div>
+                    <h2 class="text-2xl font-black text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-fire text-amber-500 mr-2"></i> Коллекция кейсов CS2
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Открывайте лучшие кейсы, собирайте редкие ножи и перчатки, испытывайте чистую удачу!</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-3 bg-csaccent px-4 py-2.5 rounded-2xl border border-csborder text-xs text-slate-300">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>Шансы выпадения: Ножи (0.26%) • Красные (0.64%) • Розовые (3.2%)</span>
+                </div>
+            </div>
+
+            <!-- Cases Grid -->
+            <div id="cases-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- CASE OPENING VIEW (Hidden by default) -->
+        <div id="view-opening" class="hidden space-y-6 animate-fadeIn">
+            <div class="flex items-center justify-between bg-csdark border border-csborder p-4 rounded-2xl shadow-lg">
+                <button onclick="closeOpening()" class="bg-csaccent hover:bg-csborder text-slate-200 px-4 py-2 rounded-xl text-sm font-semibold transition border border-csborder flex items-center">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> К списку кейсов
+                </button>
+                <div class="text-center">
+                    <h3 id="active-case-title" class="text-xl font-black text-white">Кейс</h3>
+                    <p class="text-xs text-slate-400">Стоимость открытия: <span id="active-case-price" class="text-amber-400 font-bold">2.50 $</span></p>
+                </div>
+                <div class="w-28"></div>
+            </div>
+
+            <!-- Roulette Wheel Area -->
+            <div class="bg-csdark border border-csborder rounded-3xl overflow-hidden shadow-2xl relative p-6 flex flex-col items-center">
+                <div class="roulette-container rounded-2xl shadow-inner mb-8">
+                    <div class="roulette-pointer"></div>
+                    <div id="roulette-track" class="roulette-track"></div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex flex-col items-center space-y-3 w-full max-w-md">
+                    <button id="open-btn" onclick="startOpening()" class="w-full py-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-lg uppercase tracking-wider rounded-2xl shadow-xl transform active:scale-95 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Открыть кейс</span>
+                    </button>
+                    <div class="flex justify-between w-full text-xs text-slate-400 px-2">
+                        <span>Быстрое открытие: <kbd class="bg-csaccent px-1.5 py-0.5 rounded border border-csborder text-slate-300">Space</kbd></span>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="fast-anim" class="rounded bg-csaccent border-csborder text-amber-500 focus:ring-0">
+                            <span>Быстрая анимация</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case Contents Preview -->
+            <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl">
+                <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                    <i class="fa-solid fa-list mr-2 text-amber-500"></i> Возможные награды в этом кейсе
+                </h4>
+                <div id="case-contents-preview" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- 2. INVENTORY TAB -->
+        <div id="tab-inventory" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-csdark border border-csborder p-6 rounded-3xl shadow-xl gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-briefcase text-amber-500 mr-2"></i> Инвентарь игрока
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Все выигранные вами скины и ножи. Осматривайте, продавайте или отправляйте на контракты.</p>
+                </div>
+                <div class="flex items-center space-x-3 flex-wrap gap-2">
+                    <div class="bg-csaccent px-4 py-2.5 rounded-2xl border border-csborder text-sm">
+                        Стоимость: <span id="total-inventory-value" class="text-amber-400 font-bold">0.00 $</span>
+                    </div>
+                    <button onclick="sellAllItems()" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-4 py-2.5 rounded-2xl text-sm transition shadow flex items-center">
+                        <i class="fa-solid fa-fire-flame-curved mr-1.5"></i> Продать всё
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters & Sorting -->
+            <div class="flex flex-wrap gap-3 items-center justify-between bg-csdark p-4 rounded-2xl border border-csborder">
+                <div class="flex flex-wrap gap-2 items-center">
+                    <span class="text-xs font-semibold text-slate-400 uppercase mr-1"><i class="fa-solid fa-filter mr-1"></i> Редкость:</span>
+                    <button onclick="filterInventory('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black transition">Все</button>
+                    <button onclick="filterInventory('blue')" id="filter-blue" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-blue-400 hover:bg-csborder transition">Синие</button>
+                    <button onclick="filterInventory('purple')" id="filter-purple" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-purple-400 hover:bg-csborder transition">Фиолетовые</button>
+                    <button onclick="filterInventory('pink')" id="filter-pink" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-pink-400 hover:bg-csborder transition">Розовые</button>
+                    <button onclick="filterInventory('red')" id="filter-red" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-red-400 hover:bg-csborder transition">Красные</button>
+                    <button onclick="filterInventory('gold')" id="filter-gold" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-yellow-400 hover:bg-csborder transition">Золотые</button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase">Сортировка:</span>
+                    <select id="sort-select" onchange="renderInventory()" class="bg-csaccent border border-csborder text-xs text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none">
+                        <option value="price-desc">По цене (дорогие)</option>
+                        <option value="price-asc">По цене (дешевые)</option>
+                        <option value="newest">Сначала новые</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Inventory Grid -->
+            <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+            
+            <div id="inventory-empty" class="hidden flex-col items-center justify-center py-20 bg-csdark border border-csborder rounded-3xl text-center">
+                <div class="text-slate-600 text-5xl mb-3"><i class="fa-solid fa-box-open"></i></div>
+                <h3 class="text-lg font-bold text-slate-300">Ваш инвентарь пуст</h3>
+                <p class="text-sm text-slate-500 mt-1">Откройте кейсы, чтобы пополнить коллекцию скинов!</p>
+                <button onclick="switchTab('cases')" class="mt-4 px-5 py-2.5 bg-amber-500 text-black font-bold text-sm rounded-xl transition shadow">Перейти к кейсам</button>
+            </div>
+        </div>
+
+        <!-- 3. TRADE-UP CONTRACTS TAB -->
+        <div id="tab-contracts" class="hidden space-y-6">
+            <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-black text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-file-contract text-amber-500 mr-2"></i> Контракт обмена
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Положите ровно 10 скинов одинаковой редкости, чтобы получить 1 скин более высокой редкости!</p>
+                </div>
+                <button id="execute-contract-btn" onclick="executeContract()" disabled class="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-500 text-black font-black uppercase text-sm rounded-2xl shadow-lg opacity-50 cursor-not-allowed transition">
+                    Подписать контракт (<span id="contract-count">0</span>/10)
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Selected Contract Skins (10 slots) -->
+                <div class="lg:col-span-2 bg-csdark border border-csborder p-6 rounded-3xl shadow-xl">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Выбранные скины для контракта (нужно 10 одинаковой редкости)</h3>
+                    <div id="contract-slots" class="grid grid-cols-2 sm:grid-cols-5 gap-3 min-h-[220px]">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Available for Contract -->
+                <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex flex-col max-h-[500px]">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Доступные скины в инвентаре</h3>
+                    <div id="contract-inventory-list" class="overflow-y-auto space-y-2 pr-1 flex-grow">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. STATS TAB -->
+        <div id="tab-stats" class="hidden space-y-6">
+            <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl">
+                <h2 class="text-2xl font-black text-white uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-chart-pie text-amber-500 mr-2"></i> Статистика и аналитика
+                </h2>
+                <p class="text-slate-400 text-sm mt-1">Ваши финансовые показатели, общая прибыль и количество открытых кейсов.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex items-center space-x-4">
+                    <div class="bg-amber-500/10 text-amber-400 p-4 rounded-2xl text-2xl border border-amber-500/20"><i class="fa-solid fa-box-open"></i></div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Открыто кейсов</p>
+                        <h3 id="stat-cases-opened" class="text-2xl font-black text-white mt-1">0</h3>
+                    </div>
+                </div>
+                <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex items-center space-x-4">
+                    <div class="bg-rose-500/10 text-rose-400 p-4 rounded-2xl text-2xl border border-rose-500/20"><i class="fa-solid fa-money-bill-wave"></i></div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Потрачено всего</p>
+                        <h3 id="stat-total-spent" class="text-2xl font-black text-white mt-1">0.00 $</h3>
+                    </div>
+                </div>
+                <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex items-center space-x-4">
+                    <div class="bg-emerald-500/10 text-emerald-400 p-4 rounded-2xl text-2xl border border-emerald-500/20"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Стоимость наград</p>
+                        <h3 id="stat-total-won" class="text-2xl font-black text-white mt-1">0.00 $</h3>
+                    </div>
+                </div>
+                <div class="bg-csdark border border-csborder p-6 rounded-3xl shadow-xl flex items-center space-x-4">
+                    <div id="stat-profit-icon" class="bg-blue-500/10 text-blue-400 p-4 rounded-2xl text-2xl border border-blue-500/20"><i class="fa-solid fa-scale-balanced"></i></div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Чистая прибыль</p>
+                        <h3 id="stat-net-profit" class="text-2xl font-black text-white mt-1">0.00 $</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- WIN MODAL -->
+    <div id="win-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div id="win-modal-card" class="bg-csdark border-2 border-amber-500/60 rounded-3xl p-8 max-w-md w-full text-center relative shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+            <div id="win-badge" class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-amber-500 text-black text-xs font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                Редкий предмет!
+            </div>
+            
+            <div id="win-glow-bg" class="w-48 h-48 mx-auto my-4 rounded-3xl flex items-center justify-center relative bg-gradient-to-b from-csaccent to-csdarker border border-csborder shadow-inner p-4">
+                <img id="win-item-img" src="" alt="Skin" class="max-h-full max-w-full object-contain filter drop-shadow-[0_12px_15px_rgba(0,0,0,0.8)]">
+            </div>
+
+            <div class="space-y-1 mb-6">
+                <p id="win-item-wear" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Прямо с завода</p>
+                <h3 id="win-item-weapon" class="text-sm font-medium text-slate-300">АК-47</h3>
+                <h2 id="win-item-name" class="text-xl font-black text-white">Дикий улов</h2>
+                <div class="pt-2">
+                    <span id="win-item-price" class="text-xl font-black text-amber-400">125.00 $</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="sellWinItem()" class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl text-sm transition shadow flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                    <span>Продать за <span id="modal-sell-price">0</span>$</span>
+                </button>
+                <button onclick="closeWinModal()" class="py-3 bg-csaccent hover:bg-csborder text-white font-bold rounded-2xl text-sm transition border border-csborder flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>В инвентарь</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSPECT SKIN MODAL -->
+    <div id="inspect-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-csdark border border-csborder rounded-3xl p-6 max-w-lg w-full relative shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white uppercase flex items-center"><i class="fa-solid fa-magnifying-glass mr-2 text-amber-500"></i> Осмотр скина</h3>
+                <button onclick="closeInspectModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="bg-csaccent border border-csborder rounded-2xl p-6 flex flex-col items-center justify-center mb-4">
+                <img id="inspect-img" src="" alt="" class="max-h-48 object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)]">
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span id="inspect-weapon">Оружие</span>
+                        <span id="inspect-wear-name" class="text-amber-400 font-bold">Прямо с завода</span>
+                    </div>
+                    <h2 id="inspect-name" class="text-xl font-black text-white">Название скина</h2>
+                </div>
+                <!-- Float Bar -->
+                <div class="bg-csaccent p-3 rounded-2xl border border-csborder">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                        <span>Float Value (Износ):</span>
+                        <span id="inspect-float-val" class="font-mono text-white">0.04521</span>
+                    </div>
+                    <div class="w-full bg-csdarker h-3 rounded-full relative overflow-hidden border border-csborder">
+                        <div id="inspect-float-indicator" class="absolute top-0 bottom-0 w-2 bg-amber-400 rounded-full shadow-lg transform -translate-x-1/2 transition-all"></div>
+                        <div class="w-full h-full flex opacity-40">
+                            <div class="flex-1 bg-blue-500" title="Factory New"></div>
+                            <div class="flex-1 bg-emerald-500" title="Minimal Wear"></div>
+                            <div class="flex-1 bg-amber-500" title="Field-Tested"></div>
+                            <div class="flex-1 bg-orange-500" title="Well-Worn"></div>
+                            <div class="flex-1 bg-rose-500" title="Battle-Scarred"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                        <span>0.00 (FN)</span>
+                        <span>0.07 (MW)</span>
+                        <span>0.15 (FT)</span>
+                        <span>0.38 (WW)</span>
+                        <span>0.45 (BS)</span>
+                        <span>1.00</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-2">
+                    <span id="inspect-price" class="text-xl font-black text-amber-400">0.00 $</span>
+                    <button id="inspect-sell-btn" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow">Продать скин</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST CONTAINER -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- FOOTER -->
+    <footer class="bg-csdarker border-t border-csborder py-4 px-6 text-center text-xs text-slate-500 mt-12">
+        <p>CS2 Case Simulator Ultimate • Independent fan project. Not affiliated with Valve Corporation.</p>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // --- SOUND SYNTHESIZER (Web Audio API) ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            click() {
+                if (!this.enabled) return;
+                this.playTone(600, 0.03, 'sine', 0.1);
+            }
+            tick() {
+                if (!this.enabled) return;
+                this.playTone(850, 0.035, 'triangle', 0.15);
+            }
+            spinStart() {
+                if (!this.enabled) return;
+                this.playTone(350, 0.1, 'sawtooth', 0.2);
+            }
+            win(rarity) {
+                if (!this.enabled) return;
+                this.init();
+                let freqs = [300, 420, 540, 700];
+                if (rarity === 'pink' || rarity === 'red') freqs = [400, 560, 720, 900, 1100];
+                if (rarity === 'gold') freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
+
+                freqs.forEach((f, idx) => {
+                    setTimeout(() => {
+                        this.playTone(f, 0.25, 'triangle', 0.3);
+                    }, idx * 110);
+                });
+            }
+            playTone(freq, duration, type, volume) {
+                try {
+                    this.init();
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type || 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(volume || 0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+        }
+        const sfx = new SoundFX();
+
+        function toggleSound() {
+            sfx.enabled = !sfx.enabled;
+            const icon = document.getElementById('sound-icon');
+            if (sfx.enabled) {
+                icon.className = "fa-solid fa-volume-high text-amber-400";
+                showToast('Звуковые эффекты включены', 'success');
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-500";
+                showToast('Звук отключен', 'error');
+            }
+        }
+
+        // --- GAME DATA: WEARS & CASES ---
+        const WEARS = [
+            { name: 'Прямо с завода', minFloat: 0.00, maxFloat: 0.07, mult: 1.25, chance: 0.15 },
+            { name: 'Немного поношенное', minFloat: 0.07, maxFloat: 0.15, mult: 1.0, chance: 0.30 },
+            { name: 'После полевых испытаний', minFloat: 0.15, maxFloat: 0.38, mult: 0.75, chance: 0.35 },
+            { name: 'Поношенное', minFloat: 0.38, maxFloat: 0.45, mult: 0.50, chance: 0.15 },
+            { name: 'Закаленное в боях', minFloat: 0.45, maxFloat: 1.00, mult: 0.30, chance: 0.05 }
+        ];
+
+        const CASES = [
+            {
+                id: 'kilowatt',
+                name: 'Кейс «Kilowatt»',
+                price: 2.49,
+                image: 'https://placehold.co/300x300/131c2e/ffd700?text=Kilowatt+Case',
+                items: [
+                    { name: 'Tec-9 | Slag', weapon: 'Tec-9', rarity: 'blue', basePrice: 0.40 },
+                    { name: 'Nova | Interlock', weapon: 'Nova', rarity: 'blue', basePrice: 0.45 },
+                    { name: 'SSG 08 | Dezastre', weapon: 'SSG 08', rarity: 'blue', basePrice: 0.60 },
+                    { name: 'Sawed-Off | Analog Input', weapon: 'Sawed-Off', rarity: 'blue', basePrice: 0.55 },
+                    { name: 'MP7 | Just Smile', weapon: 'MP7', rarity: 'blue', basePrice: 0.50 },
+                    { name: 'XM1014 | Irezumi', weapon: 'XM1014', rarity: 'blue', basePrice: 0.65 },
+                    { name: 'UMP-45 | Dominator', weapon: 'UMP-45', rarity: 'blue', basePrice: 0.50 },
+                    
+                    { name: 'MAC-10 | Sakkaku', weapon: 'MAC-10', rarity: 'purple', basePrice: 1.90 },
+                    { name: 'Zeus x27 | Olympus', weapon: 'Zeus x27', rarity: 'purple', basePrice: 3.80 },
+                    { name: 'Five-Seven | Hybrid', weapon: 'Five-Seven', rarity: 'purple', basePrice: 2.30 },
+                    { name: 'Glock-18 | Block-18', weapon: 'Glock-18', rarity: 'purple', basePrice: 4.50 },
+                    { name: 'M4A4 | Etch Lord', weapon: 'M4A4', rarity: 'purple', basePrice: 9.00 },
+
+                    { name: 'USP-S | Jawbreaker', weapon: 'USP-S', rarity: 'pink', basePrice: 24.00 },
+                    { name: 'M4A1-S | Black Lotus', weapon: 'M4A1-S', rarity: 'pink', basePrice: 38.00 },
+                    { name: 'Zeus x27 | Hyper Beast', weapon: 'Zeus x27', rarity: 'pink', basePrice: 19.50 },
+
+                    { name: 'AK-47 | Inherit', weapon: 'AK-47', rarity: 'red', basePrice: 90.00 },
+                    { name: 'AWP | Chrome Cannon', weapon: 'AWP', rarity: 'red', basePrice: 150.00 },
+
+                    { name: 'Kukri Knife | Fade', weapon: 'Нож Кукри', rarity: 'gold', basePrice: 1100.00 },
+                    { name: 'Kukri Knife | Vanilla', weapon: 'Нож Кукри', rarity: 'gold', basePrice: 500.00 }
+                ]
+            },
+            {
+                id: 'gallery',
+                name: 'Кейс «Gallery Case»',
+                price: 2.10,
+                image: 'https://placehold.co/300x300/131c2e/d32ce6?text=Gallery+Case',
+                items: [
+                    { name: 'P2000 | Lifted Spirits', weapon: 'P2000', rarity: 'blue', basePrice: 0.32 },
+                    { name: 'SG 553 | Cyberforce', weapon: 'SG 553', rarity: 'blue', basePrice: 0.38 },
+                    { name: 'CZ75-Auto | Promethean', weapon: 'CZ75-Auto', rarity: 'blue', basePrice: 0.42 },
+                    { name: 'MP5-SD | Liquidation', weapon: 'MP5-SD', rarity: 'blue', basePrice: 0.48 },
+                    { name: 'Galil AR | Chromatic', weapon: 'Galil AR', rarity: 'blue', basePrice: 0.52 },
+                    { name: 'AUG | Tom Cat', weapon: 'AUG', rarity: 'blue', basePrice: 0.40 },
+
+                    { name: 'Glock-18 | Gamma', weapon: 'Glock-18', rarity: 'purple', basePrice: 2.00 },
+                    { name: 'M4A4 | Poly Mag', weapon: 'M4A4', rarity: 'purple', basePrice: 3.40 },
+                    { name: 'USP-S | Ticket to Hell', weapon: 'USP-S', rarity: 'purple', basePrice: 3.00 },
+                    { name: 'P90 | Schematic', weapon: 'P90', rarity: 'purple', basePrice: 2.40 },
+
+                    { name: 'M4A1-S | Emphorosaur', weapon: 'M4A1-S', rarity: 'pink', basePrice: 16.50 },
+                    { name: 'AWP | Duality', weapon: 'AWP', rarity: 'pink', basePrice: 60.00 },
+
+                    { name: 'AK-47 | Head Shot', weapon: 'AK-47', rarity: 'red', basePrice: 105.00 },
+
+                    { name: 'Karambit | Doppler', weapon: 'Керамбит', rarity: 'gold', basePrice: 1950.00 }
+                ]
+            },
+            {
+                id: 'dreams',
+                name: 'Кейс «Dreams & Nightmares»',
+                price: 1.80,
+                image: 'https://placehold.co/300x300/131c2e/8847ff?text=Dreams+Nightmares',
+                items: [
+                    { name: 'P250 | Forest Haunt', weapon: 'P250', rarity: 'blue', basePrice: 0.28 },
+                    { name: 'PP-Bizon | Space Cat', weapon: 'PP-Bizon', rarity: 'blue', basePrice: 0.33 },
+                    { name: 'MAG-7 | Foresight', weapon: 'MAG-7', rarity: 'blue', basePrice: 0.30 },
+                    { name: 'SCAR-20 | Poultry', weapon: 'SCAR-20', rarity: 'blue', basePrice: 0.35 },
+                    { name: 'Sawed-Off | Spirit', weapon: 'Sawed-Off', rarity: 'blue', basePrice: 0.38 },
+                    { name: 'MP5-SD | NecroJr', weapon: 'MP5-SD', rarity: 'blue', basePrice: 0.42 },
+
+                    { name: 'MAC-10 | Ensnared', weapon: 'MAC-10', rarity: 'purple', basePrice: 1.40 },
+                    { name: 'XM1014 | Zombie', weapon: 'XM1014', rarity: 'purple', basePrice: 1.60 },
+                    { name: 'Five-SeveN | Scumbria', weapon: 'Five-SeveN', rarity: 'purple', basePrice: 1.80 },
+                    { name: 'FAMAS | Rapid Eye', weapon: 'FAMAS', rarity: 'purple', basePrice: 3.50 },
+
+                    { name: 'Dual Berettas | Melondrama', weapon: 'Dual Berettas', rarity: 'pink', basePrice: 9.20 },
+                    { name: 'AK-47 | Nightwish', weapon: 'AK-47', rarity: 'pink', basePrice: 45.00 },
+
+                    { name: 'MP9 | Starlight', weapon: 'MP9', rarity: 'red', basePrice: 48.00 },
+
+                    { name: 'Butterfly Knife | Gamma', weapon: 'Бабочка', rarity: 'gold', basePrice: 2200.00 }
+                ]
+            },
+            {
+                id: 'arms',
+                name: 'Оружейный кейс CS:GO',
+                price: 3.50,
+                image: 'https://placehold.co/300x300/131c2e/4e73de?text=Arms+Deal+Case',
+                items: [
+                    { name: 'MP7 | Skulls', weapon: 'MP7', rarity: 'blue', basePrice: 0.50 },
+                    { name: 'SG 553 | Ultraviolet', weapon: 'SG 553', rarity: 'blue', basePrice: 0.60 },
+                    { name: 'USP-S | Dark Water', weapon: 'USP-S', rarity: 'blue', basePrice: 1.20 },
+
+                    { name: 'AUG | Wings', weapon: 'AUG', rarity: 'purple', basePrice: 3.00 },
+                    { name: 'Glock-18 | Dragon Tattoo', weapon: 'Glock-18', rarity: 'purple', basePrice: 8.50 },
+                    { name: 'M4A4 | Zirka', weapon: 'M4A4', rarity: 'purple', basePrice: 4.50 },
+
+                    { name: 'AK-47 | Case Hardened', weapon: 'AK-47', rarity: 'pink', basePrice: 85.00 },
+                    { name: 'AWP | Lightning Strike', weapon: 'AWP', rarity: 'pink', basePrice: 140.00 },
+
+                    { name: 'M4A4 | Asiimov', weapon: 'M4A4', rarity: 'red', basePrice: 190.00 },
+
+                    { name: 'Bayonet | Crimson Web', weapon: 'Штык-нож', rarity: 'gold', basePrice: 1400.00 }
+                ]
+            }
+        ];
+
+        // --- APP STATE ---
+        let balance = 2500.00;
+        let inventory = [];
+        let activeCase = null;
+        let isSpinning = false;
+        let currentWinItem = null;
+        let currentFilter = 'all';
+        let contractSelected = [];
+
+        // Stats state
+        let stats = {
+            casesOpened: 0,
+            totalSpent: 0,
+            totalWon: 0
+        };
+
+        // Rank state
+        let xp = 0;
+        let rankLevel = 1;
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            loadUserData();
+            renderCases();
+            updateBalanceDisplay();
+            updateInventoryCount();
+            updateStatsDisplay();
+            updateRankDisplay();
+
+            // Keyboard Spacebar for fast case opening
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !isSpinning && document.getElementById('view-opening').classList.contains('block')) {
+                    e.preventDefault();
+                    startOpening();
+                }
+            });
+        };
+
+        function saveUserData() {
+            localStorage.setItem('cs2_ultimate_balance', balance);
+            localStorage.setItem('cs2_ultimate_inventory', JSON.stringify(inventory));
+            localStorage.setItem('cs2_ultimate_stats', JSON.stringify(stats));
+            localStorage.setItem('cs2_ultimate_xp', xp);
+            localStorage.setItem('cs2_ultimate_rank', rankLevel);
+        }
+
+        function loadUserData() {
+            const b = localStorage.getItem('cs2_ultimate_balance');
+            if (b !== null) balance = parseFloat(b);
+
+            const inv = localStorage.getItem('cs2_ultimate_inventory');
+            if (inv !== null) { try { inventory = JSON.parse(inv); } catch(e) {} }
+
+            const st = localStorage.getItem('cs2_ultimate_stats');
+            if (st !== null) { try { stats = JSON.parse(st); } catch(e) {} }
+
+            const x = localStorage.getItem('cs2_ultimate_xp');
+            if (x !== null) xp = parseInt(x);
+
+            const r = localStorage.getItem('cs2_ultimate_rank');
+            if (r !== null) rankLevel = parseInt(r);
+        }
+
+        function updateBalanceDisplay() {
+            document.getElementById('user-balance').innerText = balance.toFixed(2);
+            saveUserData();
+        }
+
+        function updateInventoryCount() {
+            document.getElementById('inv-count').innerText = inventory.length;
+            const totalVal = inventory.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('total-inventory-value').innerText = totalVal.toFixed(2) + ' $';
+            saveUserData();
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('stat-cases-opened').innerText = stats.casesOpened;
+            document.getElementById('stat-total-spent').innerText = stats.totalSpent.toFixed(2) + ' $';
+            document.getElementById('stat-total-won').innerText = stats.totalWon.toFixed(2) + ' $';
+            
+            const profit = stats.totalWon - stats.totalSpent;
+            const profitEl = document.getElementById('stat-net-profit');
+            const profitIcon = document.getElementById('stat-profit-icon');
+            profitEl.innerText = (profit >= 0 ? '+' : '') + profit.toFixed(2) + ' $';
+            
+            if (profit >= 0) {
+                profitEl.className = "text-2xl font-black text-emerald-400 mt-1";
+                profitIcon.className = "bg-emerald-500/10 text-emerald-400 p-4 rounded-2xl text-2xl border border-emerald-500/20";
+            } else {
+                profitEl.className = "text-2xl font-black text-rose-400 mt-1";
+                profitIcon.className = "bg-rose-500/10 text-rose-400 p-4 rounded-2xl text-2xl border border-rose-500/20";
+            }
+            saveUserData();
+        }
+
+        function addXP(amount) {
+            xp += amount;
+            const nextXp = rankLevel * 250;
+            if (xp >= nextXp) {
+                xp -= nextXp;
+                rankLevel++;
+                showToast(`Повышение ранга! Вы достигли ${rankLevel} уровня!`, 'success');
+            }
+            updateRankDisplay();
+        }
+
+        function updateRankDisplay() {
+            const ranks = [
+                'Новичок', 'Серебро I', 'Серебро Элита', 'Золотый Звезда', 
+                'Магистр Хранитель', 'Легендарный Беркут', 'Великий Магистр', 'Global Elite'
+            ];
+            const rankName = ranks[Math.min(rankLevel - 1, ranks.length - 1)];
+            document.getElementById('user-rank').innerText = `${rankName} (${rankLevel})`;
+            document.getElementById('user-xp').innerText = xp;
+            document.getElementById('next-xp').innerText = rankLevel * 250;
+            saveUserData();
+        }
+
+        function addMoney(amount) {
+            sfx.click();
+            balance += amount;
+            updateBalanceDisplay();
+            showToast(`Баланс пополнен на +${amount}$`, 'success');
+        }
+
+        function switchTab(tab) {
+            sfx.click();
+            ['cases', 'inventory', 'contracts', 'stats'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}-btn`).className = "flex-1 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition flex items-center justify-center space-x-2";
+            });
+
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}-btn`).className = "flex-1 py-2 rounded-xl text-sm font-bold bg-amber-500 text-black transition shadow flex items-center justify-center space-x-2";
+
+            if (tab === 'inventory') renderInventory();
+            if (tab === 'contracts') renderContractTab();
+            if (tab === 'stats') updateStatsDisplay();
+        }
+
+        // --- CASES RENDERING ---
+        function renderCases() {
+            const grid = document.getElementById('cases-grid');
+            grid.innerHTML = '';
+
+            CASES.forEach(c => {
+                const card = document.createElement('div');
+                card.className = "bg-csdark border border-csborder hover:border-amber-500/50 rounded-3xl p-6 flex flex-col items-center justify-between transition-all duration-300 hover:shadow-2xl group cursor-pointer relative overflow-hidden";
+                card.onclick = () => openCaseView(c.id);
+
+                card.innerHTML = `
+                    <div class="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none"></div>
+                    <div class="w-full flex justify-between items-center text-xs text-slate-400 mb-4">
+                        <span class="bg-csaccent px-3 py-1 rounded-xl border border-csborder">${c.items.length} предметов</span>
+                        <span class="text-amber-400 font-bold">${c.price.toFixed(2)} $</span>
+                    </div>
+                    <div class="h-44 w-full flex items-center justify-center my-3 transform group-hover:scale-105 transition duration-300">
+                        <img src="${c.image}" alt="${c.name}" class="max-h-full max-w-full object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]">
+                    </div>
+                    <div class="text-center w-full mt-4">
+                        <h3 class="font-bold text-lg text-white group-hover:text-amber-400 transition">${c.name}</h3>
+                        <button class="mt-4 w-full py-3 bg-csaccent hover:bg-amber-500 hover:text-black font-bold text-sm text-slate-200 rounded-2xl border border-csborder transition shadow">
+                            Открыть кейс
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openCaseView(caseId) {
+            sfx.click();
+            activeCase = CASES.find(c => c.id === caseId);
+            if (!activeCase) return;
+
+            document.getElementById('active-case-title').innerText = activeCase.name;
+            document.getElementById('active-case-price').innerText = activeCase.price.toFixed(2) + ' $';
+
+            document.getElementById('tab-cases').classList.add('hidden');
+            document.getElementById('view-opening').classList.remove('hidden');
+
+            renderCaseContentsPreview();
+            setupRouletteInitial();
+        }
+
+        function closeOpening() {
+            sfx.click();
+            document.getElementById('view-opening').classList.add('hidden');
+            document.getElementById('tab-cases').classList.remove('hidden');
+            activeCase = null;
+        }
+
+        function renderCaseContentsPreview() {
+            const container = document.getElementById('case-contents-preview');
+            container.innerHTML = '';
+
+            activeCase.items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `bg-csaccent border border-csborder rounded-2xl p-3 flex flex-col items-center justify-between text-center relative overflow-hidden`;
+                
+                let rarityClass = 'text-blue-item';
+                let bgRarity = 'bg-blue-rarity';
+                if (item.rarity === 'purple') { rarityClass = 'text-purple-item'; bgRarity = 'bg-purple-rarity'; }
+                if (item.rarity === 'pink') { rarityClass = 'text-pink-item'; bgRarity = 'bg-pink-rarity'; }
+                if (item.rarity === 'red') { rarityClass = 'text-red-item'; bgRarity = 'bg-red-rarity'; }
+                if (item.rarity === 'gold') { rarityClass = 'text-gold-item'; bgRarity = 'bg-gold-rarity'; }
+
+                card.innerHTML = `
+                    <div class="absolute inset-0 ${bgRarity} opacity-40 pointer-events-none"></div>
+                    <div class="text-[10px] font-bold ${rarityClass} uppercase tracking-wider">${item.rarity}</div>
+                    <div class="h-20 w-full flex items-center justify-center my-2">
+                        <img src="https://placehold.co/150x100/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}" alt="" class="max-h-full object-contain">
+                    </div>
+                    <div class="w-full">
+                        <div class="text-xs font-semibold text-white truncate">${item.name}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">~${item.basePrice}$</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- ROULETTE LOGIC ---
+        function getRandomItem() {
+            const rand = Math.random() * 100;
+            let targetRarity = 'blue';
+            if (rand > 99.74) targetRarity = 'gold';
+            else if (rand > 99.1) targetRarity = 'red';
+            else if (rand > 95.9) targetRarity = 'pink';
+            else if (rand > 79.92) targetRarity = 'purple';
+
+            const filtered = activeCase.items.filter(i => i.rarity === targetRarity);
+            const pool = filtered.length > 0 ? filtered : activeCase.items;
+            const item = pool[Math.floor(Math.random() * pool.length)];
+
+            // Wear & Float calculation
+            const wearRand = Math.random();
+            let acc = 0;
+            let chosenWear = WEARS[0];
+            for (let w of WEARS) {
+                acc += w.chance;
+                if (wearRand <= acc) {
+                    chosenWear = w;
+                    break;
+                }
+            }
+
+            const floatVal = parseFloat((chosenWear.minFloat + Math.random() * (chosenWear.maxFloat - chosenWear.minFloat)).toFixed(6));
+            const finalPrice = parseFloat((item.basePrice * chosenWear.mult).toFixed(2));
+
+            return {
+                ...item,
+                wear: chosenWear.name,
+                float: floatVal,
+                price: finalPrice,
+                id: Date.now() + Math.random(),
+                date: Date.now()
+            };
+        }
+
+        function setupRouletteInitial() {
+            const track = document.getElementById('roulette-track');
+            track.innerHTML = '';
+            track.style.transform = 'translateX(0px)';
+
+            for (let i = 0; i < 45; i++) {
+                const item = getRandomItem();
+                track.appendChild(createRouletteCard(item));
+            }
+        }
+
+        function createRouletteCard(item) {
+            const div = document.createElement('div');
+            div.className = 'roulette-item';
+            
+            let bgCol = 'bg-blue-rarity';
+            let textCol = 'text-blue-item';
+            if (item.rarity === 'purple') { bgCol = 'bg-purple-rarity'; textCol = 'text-purple-item'; }
+            if (item.rarity === 'pink') { bgCol = 'bg-pink-rarity'; textCol = 'text-pink-item'; }
+            if (item.rarity === 'red') { bgCol = 'bg-red-rarity'; textCol = 'text-red-item'; }
+            if (item.rarity === 'gold') { bgCol = 'bg-gold-rarity'; textCol = 'text-gold-item'; }
+
+            div.classList.add(bgCol);
+
+            div.innerHTML = `
+                <div class="text-[10px] font-extrabold ${textCol} uppercase tracking-wider">${item.rarity}</div>
+                <div class="h-24 w-full flex items-center justify-center">
+                    <img src="https://placehold.co/140x90/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}" alt="" class="max-h-full object-contain">
+                </div>
+                <div class="text-center w-full">
+                    <div class="text-[11px] font-bold text-white truncate max-w-[140px]">${item.name}</div>
+                    <div class="text-[10px] text-amber-400 font-semibold">${item.price} $</div>
+                </div>
+            `;
+            return div;
+        }
+
+        function startOpening() {
+            if (isSpinning) return;
+            if (balance < activeCase.price) {
+                showToast('Недостаточно средств на балансе!', 'error');
+                return;
+            }
+
+            balance -= activeCase.price;
+            stats.casesOpened++;
+            stats.totalSpent += activeCase.price;
+            updateBalanceDisplay();
+            updateStatsDisplay();
+
+            isSpinning = true;
+            sfx.spinStart();
+            document.getElementById('open-btn').disabled = true;
+            document.getElementById('open-btn').classList.add('opacity-50', 'cursor-not-allowed');
+
+            const track = document.getElementById('roulette-track');
+            
+            const items = [];
+            for (let i = 0; i < 50; i++) {
+                if (i === 35) {
+                    currentWinItem = getRandomItem();
+                    items.push(currentWinItem);
+                } else {
+                    items.push(getRandomItem());
+                }
+            }
+
+            track.innerHTML = '';
+            items.forEach(item => track.appendChild(createRouletteCard(item)));
+
+            const cardWidth = 160;
+            const containerWidth = document.querySelector('.roulette-container').offsetWidth;
+            const centerOffset = containerWidth / 2 - cardWidth / 2;
+            const randomVariance = (Math.random() * 100) - 50;
+            const targetTranslateX = -(35 * cardWidth) + centerOffset + randomVariance;
+
+            const isFast = document.getElementById('fast-anim').checked;
+            const duration = isFast ? 1.5 : 5.5;
+
+            track.style.transition = `transform ${duration}s cubic-bezier(0.08, 0.82, 0.14, 1.0)`;
+            track.style.transform = `translateX(${targetTranslateX}px)`;
+
+            let tickInterval = 70;
+            if (!isFast) {
+                let elapsed = 0;
+                const ticker = setInterval(() => {
+                    elapsed += tickInterval;
+                    sfx.tick();
+                    tickInterval *= 1.1;
+                    if (elapsed >= duration * 1000) clearInterval(ticker);
+                }, tickInterval);
+            }
+
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('open-btn').disabled = false;
+                document.getElementById('open-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                sfx.win(currentWinItem.rarity);
+                stats.totalWon += currentWinItem.price;
+                updateStatsDisplay();
+                addXP(Math.ceil(activeCase.price * 15));
+
+                showWinModal(currentWinItem);
+                if (currentWinItem.rarity === 'gold' || currentWinItem.rarity === 'red') {
+                    spawnConfetti();
+                }
+            }, duration * 1000);
+        }
+
+        // --- WIN MODAL ---
+        function showWinModal(item) {
+            const modal = document.getElementById('win-modal');
+            const card = document.getElementById('win-modal-card');
+            
+            document.getElementById('win-item-name').innerText = item.name;
+            document.getElementById('win-item-weapon').innerText = item.weapon;
+            document.getElementById('win-item-wear').innerText = `${item.wear} (Float: ${item.float})`;
+            document.getElementById('win-item-price').innerText = item.price.toFixed(2) + ' $';
+            document.getElementById('modal-sell-price').innerText = item.price.toFixed(2);
+            document.getElementById('win-item-img').src = `https://placehold.co/200x150/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}`;
+
+            const badge = document.getElementById('win-badge');
+            badge.innerText = item.rarity.toUpperCase();
+            
+            card.className = "bg-csdark border-2 rounded-3xl p-8 max-w-md w-full text-center relative shadow-2xl transform scale-95 opacity-0 transition-all duration-300";
+            if (item.rarity === 'blue') card.classList.add('border-blue-500', 'glow-blue');
+            else if (item.rarity === 'purple') card.classList.add('border-purple-500', 'glow-purple');
+            else if (item.rarity === 'pink') card.classList.add('border-pink-500', 'glow-pink');
+            else if (item.rarity === 'red') card.classList.add('border-red-500', 'glow-red');
+            else if (item.rarity === 'gold') card.classList.add('border-yellow-400', 'glow-gold');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeWinModal() {
+            sfx.click();
+            if (currentWinItem) {
+                inventory.unshift(currentWinItem);
+                updateInventoryCount();
+                showToast(`Предмет добавлен в инвентарь: ${currentWinItem.name}`, 'success');
+                currentWinItem = null;
+            }
+            document.getElementById('win-modal').classList.add('hidden');
+            setupRouletteInitial();
+        }
+
+        function sellWinItem() {
+            sfx.click();
+            if (currentWinItem) {
+                balance += currentWinItem.price;
+                updateBalanceDisplay();
+                showToast(`Предмет продан за +${currentWinItem.price.toFixed(2)}$`, 'success');
+                currentWinItem = null;
+            }
+            document.getElementById('win-modal').classList.add('hidden');
+            setupRouletteInitial();
+        }
+
+        // --- INVENTORY & INSPECT ---
+        function filterInventory(rarity) {
+            sfx.click();
+            currentFilter = rarity;
+            ['all', 'blue', 'purple', 'pink', 'red', 'gold'].forEach(r => {
+                const btn = document.getElementById(`filter-${r}`);
+                if (btn) {
+                    btn.className = r === rarity ? "px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black transition" : "px-3 py-1.5 rounded-xl text-xs font-semibold bg-csaccent text-slate-300 hover:bg-csborder transition";
+                }
+            });
+            renderInventory();
+        }
+
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid');
+            const emptyState = document.getElementById('inventory-empty');
+            grid.innerHTML = '';
+
+            let filtered = inventory.filter(item => currentFilter === 'all' || item.rarity === currentFilter);
+
+            const sortVal = document.getElementById('sort-select').value;
+            filtered.sort((a, b) => {
+                if (sortVal === 'price-desc') return b.price - a.price;
+                if (sortVal === 'price-asc') return a.price - b.price;
+                if (sortVal === 'newest') return b.date - a.date;
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `bg-csdark border border-csborder rounded-2xl p-4 flex flex-col items-center justify-between relative overflow-hidden group hover:border-amber-500/50 transition shadow-lg cursor-pointer`;
+                card.onclick = () => openInspectModal(item);
+
+                let bgRarity = 'bg-blue-rarity';
+                let textCol = 'text-blue-item';
+                if (item.rarity === 'purple') { bgRarity = 'bg-purple-rarity'; textCol = 'text-purple-item'; }
+                if (item.rarity === 'pink') { bgRarity = 'bg-pink-rarity'; textCol = 'text-pink-item'; }
+                if (item.rarity === 'red') { bgRarity = 'bg-red-rarity'; textCol = 'text-red-item'; }
+                if (item.rarity === 'gold') { bgRarity = 'bg-gold-rarity'; textCol = 'text-gold-item'; }
+
+                card.innerHTML = `
+                    <div class="absolute inset-0 ${bgRarity} opacity-30 pointer-events-none"></div>
+                    <div class="w-full flex justify-between items-center text-[10px] font-bold ${textCol} uppercase tracking-wider mb-2">
+                        <span>${item.rarity}</span>
+                        <span class="text-slate-400 font-normal truncate max-w-[90px]">${item.wear}</span>
+                    </div>
+                    <div class="h-28 w-full flex items-center justify-center my-2 transform group-hover:scale-105 transition duration-300">
+                        <img src="https://placehold.co/150x100/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}" alt="" class="max-h-full object-contain">
+                    </div>
+                    <div class="w-full text-center mt-2">
+                        <div class="text-xs font-bold text-white truncate">${item.name}</div>
+                        <div class="text-xs font-black text-amber-400 mt-1">${item.price.toFixed(2)} $</div>
+                        <button onclick="event.stopPropagation(); sellInventoryItem('${item.id}')" class="mt-3 w-full py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-xl transition shadow">
+                            Продать
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function sellInventoryItem(id) {
+            sfx.click();
+            const index = inventory.findIndex(item => item.id == id);
+            if (index !== -1) {
+                const sold = inventory[index];
+                balance += sold.price;
+                inventory.splice(index, 1);
+                updateBalanceDisplay();
+                updateInventoryCount();
+                renderInventory();
+                showToast(`Предмет продан за +${sold.price.toFixed(2)}$`, 'success');
+            }
+        }
+
+        function sellAllItems() {
+            if (inventory.length === 0) {
+                showToast('Инвентарь пуст!', 'error');
+                return;
+            }
+            sfx.click();
+            const totalVal = inventory.reduce((sum, item) => sum + item.price, 0);
+            balance += totalVal;
+            inventory = [];
+            contractSelected = [];
+            updateBalanceDisplay();
+            updateInventoryCount();
+            renderInventory();
+            showToast(`Все предметы проданы за +${totalVal.toFixed(2)}$`, 'success');
+        }
+
+        // Inspect Modal
+        let inspectingItem = null;
+        function openInspectModal(item) {
+            sfx.click();
+            inspectingItem = item;
+            document.getElementById('inspect-name').innerText = item.name;
+            document.getElementById('inspect-weapon').innerText = item.weapon;
+            document.getElementById('inspect-wear-name').innerText = item.wear;
+            document.getElementById('inspect-float-val').innerText = item.float;
+            document.getElementById('inspect-price').innerText = item.price.toFixed(2) + ' $';
+            document.getElementById('inspect-img').src = `https://placehold.co/250x180/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}`;
+            
+            // Float indicator position (%)
+            const indicator = document.getElementById('inspect-float-indicator');
+            indicator.style.left = `${item.float * 100}%`;
+
+            document.getElementById('inspect-sell-btn').onclick = () => {
+                closeInspectModal();
+                sellInventoryItem(item.id);
+            };
+
+            document.getElementById('inspect-modal').classList.remove('hidden');
+        }
+
+        function closeInspectModal() {
+            sfx.click();
+            document.getElementById('inspect-modal').classList.add('hidden');
+            inspectingItem = null;
+        }
+
+        // --- TRADE-UP CONTRACTS ---
+        function renderContractTab() {
+            const slotsContainer = document.getElementById('contract-slots');
+            const invListContainer = document.getElementById('contract-inventory-list');
+            slotsContainer.innerHTML = '';
+            invListContainer.innerHTML = '';
+
+            // Render 10 slots
+            for (let i = 0; i < 10; i++) {
+                const slot = document.createElement('div');
+                slot.className = "bg-csaccent border border-csborder rounded-2xl p-3 flex flex-col items-center justify-center relative min-h-[160px]";
+                
+                if (contractSelected[i]) {
+                    const item = contractSelected[i];
+                    slot.innerHTML = `
+                        <button onclick="removeFromContract('${item.id}')" class="absolute top-2 right-2 bg-rose-600 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center hover:bg-rose-500"><i class="fa-solid fa-xmark"></i></button>
+                        <div class="h-16 flex items-center justify-center my-1">
+                            <img src="https://placehold.co/100x70/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}" class="max-h-full object-contain">
+                        </div>
+                        <div class="text-[11px] font-bold text-white truncate max-w-full text-center">${item.name}</div>
+                        <div class="text-[10px] text-amber-400 mt-0.5">${item.price}$</div>
+                    `;
+                } else {
+                    slot.innerHTML = `
+                        <div class="text-slate-600 text-2xl mb-1"><i class="fa-solid fa-plus"></i></div>
+                        <span class="text-[11px] text-slate-500 font-semibold">Слот ${i + 1}</span>
+                    `;
+                }
+                slotsContainer.appendChild(slot);
+            }
+
+            // Render inventory list (only blue, purple, pink can be used in contracts)
+            const contractable = inventory.filter(i => ['blue', 'purple', 'pink'].includes(i.rarity));
+            if (contractable.length === 0) {
+                invListContainer.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">Нет подходящих скинов (синие, фиолетовые, розовые)</div>`;
+            } else {
+                contractable.forEach(item => {
+                    const isSelected = contractSelected.some(c => c.id === item.id);
+                    if (isSelected) return;
+
+                    const row = document.createElement('div');
+                    row.className = "bg-csaccent border border-csborder p-2.5 rounded-xl flex items-center justify-between hover:border-amber-500/50 transition";
+                    
+                    let textCol = 'text-blue-item';
+                    if (item.rarity === 'purple') textCol = 'text-purple-item';
+                    if (item.rarity === 'pink') textCol = 'text-pink-item';
+
+                    row.innerHTML = `
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            <div class="w-10 h-10 bg-csdark rounded-lg flex items-center justify-center flex-shrink-0">
+                                <img src="https://placehold.co/50x40/131c2e/ffffff?text=${encodeURIComponent(item.weapon)}" class="max-h-full object-contain">
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="text-xs font-bold text-white truncate">${item.name}</div>
+                                <div class="text-[10px] ${textCol} uppercase font-bold">${item.rarity} • ${item.price}$</div>
+                            </div>
+                        </div>
+                        <button onclick="addToContract('${item.id}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-lg transition shadow flex-shrink-0">
+                            Добавить
+                        </button>
+                    `;
+                    invListContainer.appendChild(row);
+                });
+            }
+
+            // Update execute button state
+            const btn = document.getElementById('execute-contract-btn');
+            document.getElementById('contract-count').innerText = contractSelected.length;
+            
+            // Check if all 10 are same rarity
+            let valid = false;
+            if (contractSelected.length === 10) {
+                const firstRarity = contractSelected[0].rarity;
+                valid = contractSelected.every(i => i.rarity === firstRarity);
+            }
+
+            if (valid) {
+                btn.disabled = false;
+                btn.className = "mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black uppercase text-sm rounded-2xl shadow-lg transition cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-500 text-black font-black uppercase text-sm rounded-2xl shadow-lg opacity-50 cursor-not-allowed transition";
+            }
+        }
+
+        function addToContract(id) {
+            if (contractSelected.length >= 10) return;
+            sfx.click();
+            const item = inventory.find(i => i.id == id);
+            if (item) {
+                if (contractSelected.length > 0 && contractSelected[0].rarity !== item.rarity) {
+                    showToast('Все 10 скинов в контракте должны быть одинаковой редкости!', 'error');
+                    return;
+                }
+                contractSelected.push(item);
+                renderContractTab();
+            }
+        }
+
+        function removeFromContract(id) {
+            sfx.click();
+            contractSelected = contractSelected.filter(i => i.id != id);
+            renderContractTab();
+        }
+
+        function executeContract() {
+            if (contractSelected.length !== 10) return;
+            sfx.click();
+
+            // Remove selected items from inventory
+            const selectedIds = contractSelected.map(i => i.id);
+            inventory = inventory.filter(i => !selectedIds.includes(i.id));
+
+            // Determine reward rarity (next level up)
+            const inputRarity = contractSelected[0].rarity;
+            let outputRarity = 'purple';
+            if (inputRarity === 'purple') outputRarity = 'pink';
+            if (inputRarity === 'pink') outputRarity = 'red';
+            if (inputRarity === 'red') outputRarity = 'gold';
+
+            // Find all items of output rarity across cases
+            let possibleRewards = [];
+            CASES.forEach(c => {
+                c.items.forEach(i => {
+                    if (i.rarity === outputRarity) possibleRewards.push(i);
+                });
+            });
+
+            if (possibleRewards.length === 0) possibleRewards = CASES[0].items.filter(i => i.rarity === 'purple');
+
+            const rewardBase = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
+            const avgPrice = contractSelected.reduce((sum, i) => sum + i.price, 0) / 10;
+            const finalRewardPrice = parseFloat((avgPrice * (1.2 + Math.random() * 0.8)).toFixed(2));
+
+            const rewardItem = {
+                ...rewardBase,
+                wear: 'Прямо с завода',
+                float: parseFloat((Math.random() * 0.07).toFixed(6)),
+                price: finalRewardPrice,
+                id: Date.now() + Math.random(),
+                date: Date.now()
+            };
+
+            contractSelected = [];
+            updateInventoryCount();
+            renderContractTab();
+
+            sfx.win(rewardItem.rarity);
+            showWinModal(rewardItem);
+            if (rewardItem.rarity === 'gold' || rewardItem.rarity === 'red') spawnConfetti();
+        }
+
+        // --- CONFETTI EFFECT ---
+        function spawnConfetti() {
+            for (let i = 0; i < 60; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = ['#ffd700', '#eb4b4b', '#d32ce6', '#8847ff', '#4e73de'][Math.floor(Math.random() * 5)];
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0%';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-emerald-600 text-white border-emerald-500';
+            let icon = 'fa-circle-check';
+            if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white border-rose-500';
+                icon = 'fa-triangle-exclamation';
+            }
+
+            toast.className = `flex items-center space-x-2 px-4 py-3 rounded-2xl border shadow-xl text-sm font-medium ${bgClass} transform translate-y-3 opacity-0 transition-all duration-300 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-3', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-3', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
